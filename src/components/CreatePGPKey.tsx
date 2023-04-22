@@ -1,8 +1,8 @@
 import { Button, Col, Form, Input, Row, message } from 'antd';
 import axios from 'axios';
 import { saveAs } from 'file-saver';
-import { useState } from 'react';
 import { omit } from 'lodash';
+import { useState } from 'react';
 type FormValues = {
    name: string;
    email: string;
@@ -27,7 +27,7 @@ const CreatePGPKey = () => {
             private_key: res.data.data.privateKey,
          });
          setIsLoading(false);
-         message.success('Tạo cặp key thành công');
+         message.success('Generate key pair successfully');
          form.setFieldsValue({
             name: '',
             email: '',
@@ -36,12 +36,12 @@ const CreatePGPKey = () => {
          });
       } catch (error: any) {
          setIsLoading(false);
-         message.error('Có lỗi xảy ra');
+         message.error('Generate key pair failed');
       }
    };
 
    const handelDownFile = (content: string, type: 'pub' | 'sec') => {
-      if (!content) return message.error('Không có nội dung');
+      if (!content) return message.error('No content');
       const file = new Blob([content], { type: 'text/plain;charset=utf-8' });
       saveAs(file, `${Math.random().toString(36).slice(2, 7)}.${type}.asc`);
    };
@@ -51,16 +51,16 @@ const CreatePGPKey = () => {
          <Row gutter={16}>
             <Col span={12}>
                <Form.Item
-                  label="Tên"
+                  label="Name"
                   name="name"
                   rules={[
                      {
                         required: true,
-                        message: 'Vui lòng nhập tên',
+                        message: 'Name is required',
                      },
                   ]}
                >
-                  <Input placeholder="Tên" />
+                  <Input placeholder="Name" />
                </Form.Item>
                <Form.Item
                   label="Email"
@@ -69,35 +69,35 @@ const CreatePGPKey = () => {
                   rules={[
                      {
                         required: true,
-                        message: 'Vui lòng nhập email',
+                        message: 'Email is required',
                      },
                      {
                         type: 'email',
-                        message: 'Email không hợp lệ',
+                        message: 'Email is invalid',
                      },
                   ]}
                >
                   <Input placeholder="Email" />
                </Form.Item>
-               <Form.Item label="Bình luận" name="comment">
-                  <Input placeholder="Bình luận" />
+               <Form.Item label="Comment" name="comment">
+                  <Input placeholder="Comment" />
                </Form.Item>
                <Form.Item
-                  label="Mật khẩu"
+                  label="Password"
                   name="password"
                   required
                   rules={[
                      {
                         required: true,
-                        message: 'Vui lòng nhập mật khẩu',
+                        message: 'Password is required',
                      },
                      {
                         min: 6,
-                        message: 'Mật khẩu phải có ít nhất 6 ký tự',
+                        message: 'Password must be at least 6 characters',
                      },
                   ]}
                >
-                  <Input.Password placeholder="Mật khẩu" name="password" />
+                  <Input.Password placeholder="Password" name="password" />
                </Form.Item>
                <Form.Item>
                   <Button

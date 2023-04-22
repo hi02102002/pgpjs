@@ -1,3 +1,15 @@
+import bigInt from 'big-integer';
+
+type PublicKey = {
+   e: number;
+   n: number;
+};
+
+type PrivateKey = {
+   d: number;
+   n: number;
+};
+
 const random = (min: number, max: number) => {
    return Math.floor(Math.random() * (max - min) + min);
 };
@@ -40,60 +52,58 @@ const gcd = (a: number, b: number) => {
    return a;
 };
 
-const egcd = (a: number, b: number) => {
-   let m = a;
-   let n = b;
-   let xm = 1;
-   let ym = 0;
-   let xn = 0;
-   let yn = 1;
-   while (n !== 0) {
-      let q = Math.floor(m / n);
-      let r = _mod(m, n);
-      const xr = xm - q * xn;
-      const yr = ym - q * yn;
-      m = n;
-      xm = xn;
-      ym = yn;
-      n = r;
-      xn = xr;
-      yn = yr;
-   }
-   return { x: xm, y: ym, gcd: gcd(a, b) };
-};
-
 const findCoprime = (phi: number) => {
    let e = random(2, phi - 1);
 
-   let res = egcd(e, phi);
-
-   let gcd = res.gcd;
-
-   let d = res.x;
-
-   while (gcd !== 1) {
+   while (gcd(e, phi) !== 1) {
       e = random(2, phi - 1);
-      res = egcd(e, phi);
-
-      gcd = res.gcd;
-
-      d = res.x;
    }
+   return e;
+};
 
-   console.log({ e, d });
+const findD = (e: number, phi: number) => {
+   for (let x = 1; x < phi; x++) if ((e * x) % phi === 1) return x;
+};
+
+export const generateKeyPair = () => {
+   const p = generatePrime(); // p and q are two distinct primes
+   const q = generatePrime(); // p and q are two distinct primes
+   const n = p * q; // modulus
+   const phi = (p - 1) * (q - 1); // totient
+   const e = findCoprime(phi); // public key
+   const d = findD(e, phi); // private key
 
    return {
       e,
+      n,
       d,
+      phi,
+      p,
+      q,
    };
 };
 
-export const rsa = () => {
-   const p = generatePrime();
-   const q = generatePrime();
-   const n = p * q;
-   const phi = (p - 1) * (q - 1);
-   const { d, e } = findCoprime(phi);
+export const encrypt = (message: string, public_key: PublicKey) => {
+   // c(m) = (m ^ e )mod n
+   const { e, n } = public_key;
+   const encrypted = message
+      .split('')
+      .map((char) => {
+         return bigInt(char.charCodeAt(0)).modPow(e, n).toString();
+      })
+      .join();
 
-   return { public_key: [e, n], private_key: [d, n] };
+   return encrypted;
+};
+
+export const decrypt = (encrypted: string, private_key: PrivateKey) => {
+   const { d, n } = private_key;
+   const decrypted = encrypted
+      .split(',')
+      .map((char) => {
+         return String.fromCharCode(bigInt(char).modPow(d, n).toJSNumber());
+      })
+      .join('');
+
+   return decrypted;
 };
