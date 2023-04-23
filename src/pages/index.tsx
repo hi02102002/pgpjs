@@ -1,4 +1,4 @@
-import { CreatePGPKey, RSA } from '@/components';
+import { CreatePGPKey, Decryption, Encryption, RSA } from '@/components';
 import { Tabs, TabsProps, Typography } from 'antd';
 import { Inter } from 'next/font/google';
 
@@ -12,13 +12,13 @@ const items: TabsProps['items'] = [
    },
    {
       key: '2',
-      label: `Sign`,
-      children: `Content of Tab Pane 2`,
+      label: `Encrypt`,
+      children: <Encryption />,
    },
    {
       key: '3',
-      label: `Verify`,
-      children: `Content of Tab Pane 3`,
+      label: `Decrypt`,
+      children: <Decryption />,
    },
    {
       key: '4',
