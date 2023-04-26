@@ -12,12 +12,12 @@ const items: TabsProps['items'] = [
    },
    {
       key: '2',
-      label: `Encrypt`,
+      label: `Encrypt (Sign)`,
       children: <Encryption />,
    },
    {
       key: '3',
-      label: `Decrypt`,
+      label: `Decrypt (Verify)`,
       children: <Decryption />,
    },
    {

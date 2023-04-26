@@ -17,34 +17,41 @@ type FormValues = {
    public_key: string;
    message: string;
    encrypted_message: string;
+   private_key: string;
+   password: string;
 };
 
 const Encryption = () => {
    const [form] = Form.useForm<FormValues>();
    const [loading, setLoading] = useState(false);
-
    const handleEncrypt = async (values: FormValues) => {
       try {
-         const { public_key, message } = values;
+         const { public_key, message, private_key, password } = values;
          if (!public_key || !message) {
             aMessage.error('Missing public key or message');
             return;
          }
          setLoading(true);
-         const encrypted_message = await axios
+         const { encrypted, isSigned } = await axios
             .post('/api/pgp/encrypt', {
                public_key,
                message,
+               private_key,
+               password,
             })
-            .then((v) => v.data.data.encrypted);
+            .then((v) => v.data.data);
          form.setFieldsValue({
-            encrypted_message,
+            encrypted_message: encrypted,
          });
          setLoading(false);
-         aMessage.success('Encrypt success');
-      } catch (error) {
+         if (isSigned) {
+            aMessage.success('Encrypt and sign success');
+         } else {
+            aMessage.success('Encrypt success (Not sign)');
+         }
+      } catch (error: any) {
          setLoading(false);
-         aMessage.error('Encrypt fail');
+         aMessage.error(error?.response?.data?.message || 'Decrypt fail');
       }
    };
 
@@ -66,7 +73,7 @@ const Encryption = () => {
             <Row gutter={16}>
                <Col span={12}>
                   <Form.Item
-                     label="Public key"
+                     label="Public key (To encrypt)"
                      name="public_key"
                      rules={[
                         {
@@ -103,6 +110,45 @@ const Encryption = () => {
                         </Button>
                      </Upload>
                   </Form.Item>
+                  <Form.Item label="Private key (To sign)" name="private_key">
+                     <Input.TextArea
+                        readOnly
+                        placeholder="Private key (Signer)"
+                        rows={5}
+                        className="!resize-none"
+                        name="private_key"
+                     />
+                  </Form.Item>
+
+                  <Form.Item>
+                     <Upload
+                        onChange={(info) => {
+                           const fr = new FileReader();
+                           fr.onload = () => {
+                              console.log(fr.result);
+                              form.setFieldValue(
+                                 'private_key',
+                                 fr.result as string
+                              );
+                           };
+                           fr.readAsText(info.file.originFileObj as Blob);
+                        }}
+                        maxCount={1}
+                     >
+                        <Button icon={<UploadOutlined />}>
+                           Click to upload private key
+                        </Button>
+                     </Upload>
+                  </Form.Item>
+                  <Form.Item label="Password" name="password">
+                     <Input.Password
+                        placeholder="Password"
+                        className="!resize-none"
+                        name="password"
+                     />
+                  </Form.Item>
+               </Col>
+               <Col span={12}>
                   <Form.Item
                      label="Message"
                      name="message"
@@ -130,8 +176,6 @@ const Encryption = () => {
                         Encrypt
                      </Button>
                   </Form.Item>
-               </Col>
-               <Col span={12}>
                   <Form.Item label="Encrypted message" name="encrypted_message">
                      <Input.TextArea
                         readOnly

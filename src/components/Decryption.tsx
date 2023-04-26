@@ -8,6 +8,7 @@ type FormValues = {
    encrypted_message: string;
    password: string;
    decrypted_message: string;
+   public_key: string;
 };
 
 const Decryption = () => {
@@ -16,7 +17,8 @@ const Decryption = () => {
 
    const handleDecryption = async (values: FormValues) => {
       try {
-         const { private_key, encrypted_message, password } = values;
+         const { private_key, encrypted_message, password, public_key } =
+            values;
          if (!private_key || !encrypted_message || !password) {
             message.error(
                'Missing private key or encrypted message or password'
@@ -24,21 +26,26 @@ const Decryption = () => {
             return;
          }
          setLoading(true);
-         const decrypted_message = await axios
+         const { decrypted, isVerified } = await axios
             .post('/api/pgp/decrypt', {
                private_key,
                encrypted_message,
                password,
+               public_key,
             })
-            .then((v) => v.data.data.decrypted);
+            .then((v) => v.data.data);
          form.setFieldsValue({
-            decrypted_message,
+            decrypted_message: decrypted,
          });
          setLoading(false);
-         message.success('Decrypt success');
-      } catch (error) {
+         if (isVerified) {
+            message.success('Decrypt and verify success');
+         } else {
+            message.success('Decrypt success (Not verify)');
+         }
+      } catch (error: any) {
          setLoading(false);
-         message.error('Decrypt fail');
+         message.error(error?.response?.data?.message || 'Decrypt fail');
       }
    };
 
@@ -48,7 +55,7 @@ const Decryption = () => {
             <Row gutter={16}>
                <Col span={12}>
                   <Form.Item
-                     label="Private key"
+                     label="Private key (To decrypt)"
                      name="private_key"
                      rules={[
                         {
@@ -85,6 +92,52 @@ const Decryption = () => {
                         </Button>
                      </Upload>
                   </Form.Item>
+                  <Form.Item
+                     label="Password"
+                     name="password"
+                     rules={[
+                        {
+                           required: true,
+                           message: 'Please input your password!',
+                        },
+                     ]}
+                  >
+                     <Input.Password
+                        placeholder="Password"
+                        className="!resize-none"
+                        name="password"
+                     />
+                  </Form.Item>
+                  <Form.Item label="Public key (To verify)" name="public_key">
+                     <Input.TextArea
+                        placeholder="Public key"
+                        rows={5}
+                        className="!resize-none"
+                        name="public_key"
+                     />
+                  </Form.Item>
+                  <Form.Item>
+                     <Upload
+                        onChange={(info) => {
+                           const fr = new FileReader();
+                           fr.onload = () => {
+                              console.log(fr.result);
+                              form.setFieldValue(
+                                 'public_key',
+                                 fr.result as string
+                              );
+                           };
+                           fr.readAsText(info.file.originFileObj as Blob);
+                        }}
+                        maxCount={1}
+                     >
+                        <Button icon={<UploadOutlined />}>
+                           Click to upload public key
+                        </Button>
+                     </Upload>
+                  </Form.Item>
+               </Col>
+               <Col span={12}>
                   <Form.Item label="Encrypted message" name="encrypted_message">
                      <Input.TextArea
                         readOnly
@@ -114,22 +167,6 @@ const Decryption = () => {
                         </Button>
                      </Upload>
                   </Form.Item>
-                  <Form.Item
-                     label="Password"
-                     name="password"
-                     rules={[
-                        {
-                           required: true,
-                           message: 'Please input your password!',
-                        },
-                     ]}
-                  >
-                     <Input.Password
-                        placeholder="Password"
-                        className="!resize-none"
-                        name="password"
-                     />
-                  </Form.Item>
                   <Form.Item>
                      <Button
                         className="w-full"
@@ -140,8 +177,6 @@ const Decryption = () => {
                         Decrypt
                      </Button>
                   </Form.Item>
-               </Col>
-               <Col span={12}>
                   <Form.Item label="Decrypted message" name="decrypted_message">
                      <Input.TextArea
                         readOnly

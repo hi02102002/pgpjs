@@ -4,6 +4,8 @@ import * as zod from 'zod';
 const schema = zod.object({
    public_key: zod.string(),
    message: zod.string(),
+   private_key: zod.string().optional(),
+   password: zod.string().optional(),
 });
 
 type RequestBody = zod.infer<typeof schema>;
@@ -19,7 +21,8 @@ export default async function handel(
          data: null,
       });
 
-   const { public_key, message } = req.body as RequestBody;
+   const { public_key, message, private_key, password } =
+      req.body as RequestBody;
 
    const validate = schema.safeParse(req.body);
 
@@ -31,9 +34,29 @@ export default async function handel(
       });
    }
 
+   let privateKey: openpgp.PrivateKey | undefined = undefined;
+
+   if (private_key) {
+      if (!password) {
+         return res.status(400).json({
+            message: 'Missing password',
+            status: 400,
+            data: null,
+         });
+      }
+
+      privateKey = await openpgp.decryptKey({
+         privateKey: await openpgp.readPrivateKey({
+            armoredKey: private_key as string,
+         }),
+         passphrase: password,
+      });
+   }
+
    const encrypted = await openpgp.encrypt({
       message: await openpgp.createMessage({ text: message }),
       encryptionKeys: await openpgp.readKey({ armoredKey: public_key }),
+      signingKeys: privateKey,
    });
 
    res.status(200).json({
@@ -41,6 +64,7 @@ export default async function handel(
       status: 200,
       data: {
          encrypted,
+         isSigned: !!privateKey,
       },
    });
 }
