@@ -83,7 +83,6 @@ const Encryption = () => {
                      ]}
                   >
                      <Input.TextArea
-                        readOnly
                         placeholder="Public key"
                         rows={5}
                         className="!resize-none"
@@ -112,7 +111,6 @@ const Encryption = () => {
                   </Form.Item>
                   <Form.Item label="Private key (To sign)" name="private_key">
                      <Input.TextArea
-                        readOnly
                         placeholder="Private key (Signer)"
                         rows={5}
                         className="!resize-none"

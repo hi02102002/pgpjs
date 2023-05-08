@@ -7,6 +7,10 @@ const RSA = () => {
    const handelRandom = () => {
       const { d, e, n, p, phi, q } = generateKeyPair();
       form.setFieldsValue({
+         cipher_text: '',
+         text_decryption: '',
+      });
+      form.setFieldsValue({
          d,
          e,
          n,

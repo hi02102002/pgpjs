@@ -26,7 +26,7 @@ const Decryption = () => {
             return;
          }
          setLoading(true);
-         const { decrypted, isVerified } = await axios
+         const { decrypted, isVerified, keyID } = await axios
             .post('/api/pgp/decrypt', {
                private_key,
                encrypted_message,
@@ -39,13 +39,16 @@ const Decryption = () => {
          });
          setLoading(false);
          if (isVerified) {
-            message.success('Decrypt and verify success');
+            message.success(`Decrypt and verify success. keyID: ${keyID}`);
          } else {
             message.success('Decrypt success (Not verify)');
          }
       } catch (error: any) {
          setLoading(false);
          message.error(error?.response?.data?.message || 'Decrypt fail');
+         form.setFieldsValue({
+            decrypted_message: error?.response?.data?.decrypted,
+         });
       }
    };
 
@@ -65,7 +68,6 @@ const Decryption = () => {
                      ]}
                   >
                      <Input.TextArea
-                        readOnly
                         placeholder="Private key"
                         rows={5}
                         className="!resize-none"
@@ -140,7 +142,6 @@ const Decryption = () => {
                <Col span={12}>
                   <Form.Item label="Encrypted message" name="encrypted_message">
                      <Input.TextArea
-                        readOnly
                         placeholder="Encrypted message"
                         rows={5}
                         className="!resize-none"

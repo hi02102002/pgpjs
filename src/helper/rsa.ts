@@ -55,7 +55,7 @@ const gcd = (a: number, b: number) => {
 const findCoprime = (phi: number) => {
    let e = random(2, phi - 1);
 
-   while (gcd(e, phi) !== 1) {
+   while (gcd(e, phi) !== 1 || e >= phi || e < 1) {
       e = random(2, phi - 1);
    }
    return e;
@@ -69,7 +69,7 @@ export const generateKeyPair = () => {
    const p = generatePrime(); // p and q are two distinct primes
    const q = generatePrime(); // p and q are two distinct primes
    const n = p * q; // modulus
-   const phi = (p - 1) * (q - 1); // totient
+   const phi = (p - 1) * (q - 1); // totient // dùng để tạo ra khóa bí mật và khóa công khai
    const e = findCoprime(phi); // public key
    const d = findD(e, phi); // private key
 
@@ -87,9 +87,12 @@ export const encrypt = (message: string, public_key: PublicKey) => {
    // c(m) = (m ^ e )mod n
    const { e, n } = public_key;
    const encrypted = message
-      .split('')
+      .split('') // lay ra tung ki tu
       .map((char) => {
-         return bigInt(char.charCodeAt(0)).modPow(e, n).toString();
+         return bigInt(char.charCodeAt(0)).modPow(e, n).toString(); // ma hoa tung ki tu
+         // char.charCodeAt(0) -> lay ra ma ascii cua ki tu
+         // bigInt(char.charCodeAt(0)) -> chuyen ma ascii thanh so nguyen
+         // bigInt(char.charCodeAt(0)).modPow(e, n) -> ma hoa so nguyen
       })
       .join();
 
@@ -99,10 +102,13 @@ export const encrypt = (message: string, public_key: PublicKey) => {
 export const decrypt = (encrypted: string, private_key: PrivateKey) => {
    const { d, n } = private_key;
    const decrypted = encrypted
-      .split(',')
+      .split(',') // lay ra tung ki tu
       .map((char) => {
          return String.fromCharCode(bigInt(char).modPow(d, n).toJSNumber());
-      })
+      }) // giai ma tung ki tu
+      // bigInt(char) -> chuyen ki tu thanh so nguyen
+      // bigInt(char).modPow(d, n) -> giai ma so nguyen
+      // String.fromCharCode(bigInt(char).modPow(d, n).toJSNumber()) -> chuyen so nguyen thanh ki tu
       .join('');
 
    return decrypted;

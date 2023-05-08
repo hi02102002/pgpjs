@@ -14,51 +14,72 @@ export default async function handel(
    req: NextApiRequest,
    res: NextApiResponse
 ) {
-   if (req.method !== 'POST')
-      return res.status(405).json({
-         message: 'Method not allowed',
-         status: 405,
-         data: null,
+   try {
+      if (req.method !== 'POST')
+         return res.status(405).json({
+            message: 'Method not allowed',
+            status: 405,
+            data: null,
+         });
+
+      const { private_key, encrypted_message, password, public_key } =
+         req.body as RequestBody;
+
+      const validate = schema.safeParse(req.body);
+
+      if (!validate.success) {
+         return res.status(400).json({
+            message: 'Bad request',
+            status: 400,
+            data: null,
+         });
+      }
+
+      let isVerified = false;
+
+      const { data: decrypted, signatures } = await openpgp.decrypt({
+         message: await openpgp.readMessage({
+            armoredMessage: encrypted_message,
+         }),
+         decryptionKeys: await openpgp.decryptKey({
+            privateKey: await openpgp.readPrivateKey({
+               armoredKey: private_key,
+            }),
+            passphrase: password,
+         }),
+         verificationKeys: public_key
+            ? await openpgp.readKey({ armoredKey: public_key })
+            : undefined,
       });
 
-   const { private_key, encrypted_message, password, public_key } =
-      req.body as RequestBody;
+      console.log(signatures);
 
-   const validate = schema.safeParse(req.body);
+      try {
+         isVerified = await signatures[0]?.verified;
+      } catch (error: any) {
+         if (public_key) {
+            return res.status(400).json({
+               message: error.message,
+               decrypted,
+            });
+         }
+      }
 
-   if (!validate.success) {
-      return res.status(400).json({
-         message: 'Bad request',
-         status: 400,
+      res.status(200).json({
+         message: 'Success',
+         status: 200,
+         data: {
+            decrypted,
+            isVerified,
+            keyID: signatures.map((signature) => signature.keyID.toHex()),
+         },
+      });
+   } catch (error: any) {
+      console.log(error);
+      res.status(500).json({
+         message: error.message || 'Internal server error',
+         status: 500,
          data: null,
       });
    }
-
-   let isVerified = false;
-
-   console.log(private_key, encrypted_message, password, public_key);
-
-   const { data: decrypted, signatures } = await openpgp.decrypt({
-      message: await openpgp.readMessage({ armoredMessage: encrypted_message }),
-      decryptionKeys: await openpgp.decryptKey({
-         privateKey: await openpgp.readPrivateKey({ armoredKey: private_key }),
-         passphrase: password,
-      }),
-      verificationKeys: public_key
-         ? await openpgp.readKey({ armoredKey: public_key })
-         : undefined,
-   });
-
-   try {
-      isVerified = await signatures[0].verified;
-   } catch (error) {}
-
-   res.status(200).json({
-      message: 'Success',
-      status: 200,
-      data: {
-         decrypted,
-         isVerified,
-      },
-   });
 }
